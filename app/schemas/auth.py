@@ -21,3 +21,12 @@ class UserRegisterResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserLoginResponse(BaseModel):
+    message: str
+    user: UserRegisterResponse

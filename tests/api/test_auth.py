@@ -47,3 +47,63 @@ def test_register_user_rejects_duplicate_email(client):
 
     assert first_response.status_code == 201
     assert second_response.status_code == 409
+
+def test_login_user_with_valid_credentials(client):
+    payload = {
+        "email": "login@example.com",
+        "password": "secure-password-123",
+        "first_name": "Login",
+        "last_name": "User",
+    }
+
+    client.post("/api/v1/auth/register", json=payload)
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "login@example.com",
+            "password": "secure-password-123",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["message"] == "Login successful."
+    assert data["user"]["email"] == "login@example.com"
+    assert "password" not in data["user"]
+    assert "password_hash" not in data["user"]
+
+
+def test_login_user_with_wrong_password_fails(client):
+    payload = {
+        "email": "wrongpassword@example.com",
+        "password": "secure-password-123",
+        "first_name": "Wrong",
+        "last_name": "Password",
+    }
+
+    client.post("/api/v1/auth/register", json=payload)
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "wrongpassword@example.com",
+            "password": "bad-password",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_login_user_with_unknown_email_fails(client):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "missing@example.com",
+            "password": "secure-password-123",
+        },
+    )
+
+    assert response.status_code == 401

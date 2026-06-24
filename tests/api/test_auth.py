@@ -70,7 +70,8 @@ def test_login_user_with_valid_credentials(client):
 
     data = response.json()
 
-    assert data["message"] == "Login successful."
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
     assert data["user"]["email"] == "login@example.com"
     assert "password" not in data["user"]
     assert "password_hash" not in data["user"]
@@ -105,5 +106,39 @@ def test_login_user_with_unknown_email_fails(client):
             "password": "secure-password-123",
         },
     )
+
+    assert response.status_code == 401
+
+def test_auth_me_returns_current_user(client):
+    payload = {
+        "email": "me@example.com",
+        "password": "secure-password-123",
+        "first_name": "Me",
+        "last_name": "User",
+    }
+
+    client.post("/api/v1/auth/register", json=payload)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "me@example.com",
+            "password": "secure-password-123",
+        },
+    )
+
+    token = login_response.json()["access_token"]
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "me@example.com"
+
+
+def test_auth_me_without_token_fails(client):
+    response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401

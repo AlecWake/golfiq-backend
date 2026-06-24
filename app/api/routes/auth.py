@@ -1,3 +1,6 @@
+from app.db.models.user import User
+from app.dependencies.auth import get_current_user
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -12,6 +15,9 @@ from app.schemas.auth import (
     UserRegisterResponse,
 )
 from app.services.auth_service import login_user, register_user
+
+from app.core.security import create_access_token
+from app.schemas.auth import TokenResponse
 
 
 router = APIRouter()
@@ -30,7 +36,7 @@ def register(
 
 @router.post(
     "/login",
-    response_model=UserLoginResponse,
+    response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
 )
 def login(
@@ -39,7 +45,25 @@ def login(
 ):
     user = login_user(db, login_data.email, login_data.password)
 
+    access_token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "email": user.email,
+        }
+    )
+
     return {
-        "message": "Login successful.",
+        "access_token": access_token,
+        "token_type": "bearer",
         "user": user,
     }
+
+@router.get(
+    "/me",
+    response_model=UserRegisterResponse,
+    status_code=status.HTTP_200_OK,
+)
+def read_current_user(
+    current_user: User = Depends(get_current_user),
+):
+    return current_user

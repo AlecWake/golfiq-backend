@@ -30,3 +30,8 @@ class UserLoginRequest(BaseModel):
 class UserLoginResponse(BaseModel):
     message: str
     user: UserRegisterResponse
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserRegisterResponse

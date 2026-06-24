@@ -1,0 +1,23 @@
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    first_name: str | None = None
+    last_name: str | None = None
+
+
+class UserRegisterResponse(BaseModel):
+    id: int
+    email: EmailStr
+    first_name: str | None
+    last_name: str | None
+    role: str
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True
+    }

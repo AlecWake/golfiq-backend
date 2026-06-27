@@ -21,6 +21,7 @@ class User(Base):
         server_default=func.now(),
         nullable=False,
     )
+    
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -32,5 +33,11 @@ class User(Base):
         "GolferProfile",
         back_populates="user",
         uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    clubs = relationship(
+        "Club",
+        back_populates="user",
         cascade="all, delete-orphan",
     )

@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.models.practice_session import PracticeSession
+from app.db.models.swing_thought import SwingThought
 from app.db.models.user import User
 from app.schemas.practice_session import (
     PracticeSessionCreateRequest,
@@ -100,3 +101,94 @@ def delete_practice_session(
 
     db.delete(practice_session)
     db.commit()
+
+
+def link_swing_thought_to_practice_session(
+    db: Session,
+    current_user: User,
+    practice_session_id: int,
+    swing_thought_id: int,
+) -> SwingThought:
+    practice_session = get_user_practice_session(
+        db,
+        current_user,
+        practice_session_id,
+    )
+
+    swing_thought = (
+        db.query(SwingThought)
+        .filter(
+            SwingThought.id == swing_thought_id,
+            SwingThought.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if swing_thought is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Swing thought not found.",
+        )
+
+    if swing_thought in practice_session.swing_thoughts:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Swing thought is already linked to this practice session.",
+        )
+
+    practice_session.swing_thoughts.append(swing_thought)
+    db.commit()
+    db.refresh(swing_thought)
+
+    return swing_thought
+
+
+def unlink_swing_thought_from_practice_session(
+    db: Session,
+    current_user: User,
+    practice_session_id: int,
+    swing_thought_id: int,
+) -> None:
+    practice_session = get_user_practice_session(
+        db,
+        current_user,
+        practice_session_id,
+    )
+
+    swing_thought = (
+        db.query(SwingThought)
+        .filter(
+            SwingThought.id == swing_thought_id,
+            SwingThought.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if swing_thought is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Swing thought not found.",
+        )
+
+    if swing_thought not in practice_session.swing_thoughts:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Practice session swing thought link not found.",
+        )
+
+    practice_session.swing_thoughts.remove(swing_thought)
+    db.commit()
+
+
+def get_practice_session_swing_thoughts(
+    db: Session,
+    current_user: User,
+    practice_session_id: int,
+) -> list[SwingThought]:
+    practice_session = get_user_practice_session(
+        db,
+        current_user,
+        practice_session_id,
+    )
+
+    return list(practice_session.swing_thoughts)

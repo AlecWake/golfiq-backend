@@ -4,6 +4,9 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.models.practice_session_swing_thought import (
+    practice_session_swing_thoughts,
+)
 
 
 class SwingThought(Base):
@@ -34,3 +37,8 @@ class SwingThought(Base):
     )
 
     user = relationship("User", back_populates="swing_thoughts")
+    practice_sessions = relationship(
+        "PracticeSession",
+        secondary=practice_session_swing_thoughts,
+        back_populates="swing_thoughts",
+    )

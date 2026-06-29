@@ -6,9 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from app.db.base import Base
 from app.dependencies.database import get_db
 from app.main import app
+from app.db import models
 
 
-TEST_DATABASE_URL = "postgresql+psycopg://golfiq_user:golfiq_password@localhost:5433/golfiq_dev"
+TEST_DATABASE_URL = "postgresql+psycopg://golfiq_user:golfiq_password@localhost:5433/golfiq_test"
 
 engine = create_engine(TEST_DATABASE_URL)
 

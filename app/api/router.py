@@ -1,6 +1,14 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, clubs, health, practice_sessions, rounds, swing_thoughts
+from app.api.routes import (
+    auth,
+    clubs,
+    health,
+    practice_sessions,
+    round_stats,
+    rounds,
+    swing_thoughts,
+)
 
 api_router = APIRouter()
 
@@ -37,4 +45,10 @@ api_router.include_router(
     rounds.router,
     prefix="/rounds",
     tags=["rounds"],
+)
+
+api_router.include_router(
+    round_stats.router,
+    prefix="/rounds",
+    tags=["round-stats"],
 )

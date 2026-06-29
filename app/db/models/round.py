@@ -36,3 +36,9 @@ class Round(Base):
     )
 
     user = relationship("User", back_populates="rounds")
+    stats = relationship(
+        "RoundStat",
+        back_populates="round",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )

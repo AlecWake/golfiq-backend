@@ -41,3 +41,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    swing_thoughts = relationship(
+        "SwingThought",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

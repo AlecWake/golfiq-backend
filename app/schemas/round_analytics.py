@@ -17,3 +17,16 @@ class RoundAnalyticsSummaryResponse(BaseModel):
     pars: int = Field(ge=0)
     bogeys: int = Field(ge=0)
     double_bogeys_or_worse: int = Field(ge=0)
+
+
+class MultiRoundAnalyticsSummaryResponse(BaseModel):
+    total_rounds: int = Field(ge=0)
+    average_score: float = Field(ge=0)
+    best_score: int | None = Field(default=None, ge=0)
+    worst_score: int | None = Field(default=None, ge=0)
+    average_putts: float = Field(ge=0)
+    average_penalties: float = Field(ge=0)
+    average_fairway_percentage: float = Field(ge=0)
+    average_gir_percentage: float = Field(ge=0)
+    total_holes_played: int = Field(ge=0)
+    recent_rounds_count: int = Field(ge=0)

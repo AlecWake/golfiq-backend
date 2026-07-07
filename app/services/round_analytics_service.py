@@ -1,9 +1,15 @@
-from sqlalchemy.orm import Session
+from datetime import timedelta
+
+from sqlalchemy.orm import Session, selectinload
 
 from app.db.models.hole_score import HoleScore
+from app.db.models.round import Round
 from app.db.models.round_stat import RoundStat
 from app.db.models.user import User
-from app.schemas.round_analytics import RoundAnalyticsSummaryResponse
+from app.schemas.round_analytics import (
+    MultiRoundAnalyticsSummaryResponse,
+    RoundAnalyticsSummaryResponse,
+)
 from app.services.round_service import get_user_round
 
 
@@ -90,4 +96,123 @@ def get_round_analytics_summary(
         pars=pars,
         bogeys=bogeys,
         double_bogeys_or_worse=double_bogeys_or_worse,
+    )
+
+
+def _average(values: list[float | int]) -> float:
+    if not values:
+        return 0.0
+
+    return round(sum(values) / len(values), 2)
+
+
+def _stat_values_for_round(user_round: Round) -> tuple[int | None, int | None]:
+    if user_round.stats is not None:
+        return user_round.stats.putts, user_round.stats.penalties
+
+    if user_round.hole_scores:
+        return (
+            sum(hole_score.putts for hole_score in user_round.hole_scores),
+            sum(hole_score.penalty_strokes for hole_score in user_round.hole_scores),
+        )
+
+    return None, None
+
+
+def _fairway_percentage_for_round(user_round: Round) -> float | None:
+    if user_round.stats is not None:
+        return _percentage(
+            user_round.stats.fairways_hit,
+            user_round.stats.fairways_possible,
+        )
+
+    if user_round.hole_scores:
+        fairways_hit = sum(
+            1 for hole_score in user_round.hole_scores if hole_score.fairway_hit
+        )
+        return _percentage(fairways_hit, len(user_round.hole_scores))
+
+    return None
+
+
+def _gir_percentage_for_round(user_round: Round) -> float | None:
+    if user_round.stats is not None:
+        return _percentage(
+            user_round.stats.greens_in_regulation,
+            user_round.holes_played,
+        )
+
+    if user_round.hole_scores:
+        greens_in_regulation = sum(
+            1
+            for hole_score in user_round.hole_scores
+            if hole_score.green_in_regulation
+        )
+        return _percentage(greens_in_regulation, len(user_round.hole_scores))
+
+    return None
+
+
+def get_multi_round_analytics_summary(
+    db: Session,
+    current_user: User,
+) -> MultiRoundAnalyticsSummaryResponse:
+    user_rounds = (
+        db.query(Round)
+        .options(selectinload(Round.stats), selectinload(Round.hole_scores))
+        .filter(Round.user_id == current_user.id)
+        .all()
+    )
+
+    if not user_rounds:
+        return MultiRoundAnalyticsSummaryResponse(
+            total_rounds=0,
+            average_score=0.0,
+            best_score=None,
+            worst_score=None,
+            average_putts=0.0,
+            average_penalties=0.0,
+            average_fairway_percentage=0.0,
+            average_gir_percentage=0.0,
+            total_holes_played=0,
+            recent_rounds_count=0,
+        )
+
+    scores = [user_round.total_score for user_round in user_rounds]
+    putt_totals: list[int] = []
+    penalty_totals: list[int] = []
+    fairway_percentages: list[float] = []
+    gir_percentages: list[float] = []
+
+    for user_round in user_rounds:
+        putts, penalties = _stat_values_for_round(user_round)
+        fairway_percentage = _fairway_percentage_for_round(user_round)
+        gir_percentage = _gir_percentage_for_round(user_round)
+
+        if putts is not None:
+            putt_totals.append(putts)
+        if penalties is not None:
+            penalty_totals.append(penalties)
+        if fairway_percentage is not None:
+            fairway_percentages.append(fairway_percentage)
+        if gir_percentage is not None:
+            gir_percentages.append(gir_percentage)
+
+    latest_round_date = max(user_round.round_date for user_round in user_rounds)
+    recent_cutoff = latest_round_date - timedelta(days=30)
+    recent_rounds_count = sum(
+        1 for user_round in user_rounds if user_round.round_date >= recent_cutoff
+    )
+
+    return MultiRoundAnalyticsSummaryResponse(
+        total_rounds=len(user_rounds),
+        average_score=_average(scores),
+        best_score=min(scores),
+        worst_score=max(scores),
+        average_putts=_average(putt_totals),
+        average_penalties=_average(penalty_totals),
+        average_fairway_percentage=_average(fairway_percentages),
+        average_gir_percentage=_average(gir_percentages),
+        total_holes_played=sum(user_round.holes_played for user_round in user_rounds),
+        recent_rounds_count=recent_rounds_count,
     )

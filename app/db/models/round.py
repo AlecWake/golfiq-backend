@@ -42,3 +42,8 @@ class Round(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    hole_scores = relationship(
+        "HoleScore",
+        back_populates="round",
+        cascade="all, delete-orphan",
+    )

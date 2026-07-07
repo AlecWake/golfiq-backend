@@ -4,6 +4,7 @@ from app.api.routes import (
     auth,
     clubs,
     health,
+    hole_scores,
     practice_sessions,
     round_stats,
     rounds,
@@ -51,4 +52,10 @@ api_router.include_router(
     round_stats.router,
     prefix="/rounds",
     tags=["round-stats"],
+)
+
+api_router.include_router(
+    hole_scores.router,
+    prefix="/rounds",
+    tags=["hole-scores"],
 )

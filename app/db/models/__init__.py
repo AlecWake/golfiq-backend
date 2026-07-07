@@ -1,5 +1,6 @@
 from app.db.models.club import Club
 from app.db.models.golfer_profile import GolferProfile
+from app.db.models.hole_score import HoleScore
 from app.db.models.practice_session import PracticeSession
 from app.db.models.practice_session_swing_thought import (
     practice_session_swing_thoughts,
@@ -12,6 +13,7 @@ from app.db.models.user import User
 __all__ = [
     "Club",
     "GolferProfile",
+    "HoleScore",
     "PracticeSession",
     "practice_session_swing_thoughts",
     "Round",

@@ -276,3 +276,264 @@ def test_recommendations_requires_auth(client):
     response = client.get("/api/v1/recommendations")
 
     assert response.status_code == 401
+
+
+def priority_categories(response_json):
+    return {priority["category"] for priority in response_json}
+
+
+def priority_titles(response_json):
+    return {priority["title"] for priority in response_json}
+
+
+def priority_level_score(priority_level):
+    return {"High": 3, "Medium": 2, "Low": 1}[priority_level]
+
+
+def assert_ranked_order(response_json):
+    assert [
+        priority["priority_rank"] for priority in response_json
+    ] == list(range(1, len(response_json) + 1))
+    assert [
+        priority_level_score(priority["priority_level"])
+        for priority in response_json
+    ] == sorted(
+        [
+            priority_level_score(priority["priority_level"])
+            for priority in response_json
+        ],
+        reverse=True,
+    )
+
+
+def test_practice_priorities_for_user_with_no_data(client):
+    headers = register_and_login(
+        client,
+        email="practice-priorities-empty@example.com",
+    )
+
+    response = client.get(
+        "/api/v1/recommendations/practice-priorities",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 3
+    assert priority_categories(response.json()) == {
+        "Practice Frequency",
+        "Swing Thoughts",
+        "Ball Striking",
+    }
+    assert response.json()[0]["priority_rank"] == 1
+    assert response.json()[0]["priority_level"] == "High"
+    assert response.json()[0]["category"] == "Practice Frequency"
+    assert_ranked_order(response.json())
+
+
+def test_practice_priorities_for_beginner_user(client):
+    headers = register_and_login(
+        client,
+        email="practice-priorities-beginner@example.com",
+    )
+    create_practice_session(client, headers)
+
+    response = client.get(
+        "/api/v1/recommendations/practice-priorities",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert priority_categories(response.json()) == {
+        "Practice Frequency",
+        "Swing Thoughts",
+        "Ball Striking",
+    }
+    assert "Build more practice history" in priority_titles(response.json())
+    assert "Create one active swing thought" in priority_titles(response.json())
+    assert "Create a baseline with your next round" in priority_titles(response.json())
+    assert_ranked_order(response.json())
+
+
+def test_practice_priorities_for_experienced_user(client):
+    headers = register_and_login(
+        client,
+        email="practice-priorities-experienced@example.com",
+    )
+    create_swing_thought(client, headers)
+    create_practice_session(client, headers, session_date="2026-06-10")
+    create_practice_session(client, headers, session_date="2026-06-20")
+    create_practice_session(client, headers, session_date="2026-07-01")
+    first_round_id = create_round(
+        client,
+        headers,
+        total_score=98,
+        round_date="2026-06-01",
+    )
+    second_round_id = create_round(
+        client,
+        headers,
+        total_score=82,
+        round_date="2026-06-15",
+    )
+    third_round_id = create_round(
+        client,
+        headers,
+        total_score=105,
+        round_date="2026-07-06",
+    )
+    create_round_stats(
+        client,
+        headers,
+        first_round_id,
+        fairways_hit=3,
+        fairways_possible=14,
+        greens_in_regulation=3,
+        putts=39,
+        penalties=3,
+    )
+    create_round_stats(
+        client,
+        headers,
+        second_round_id,
+        fairways_hit=4,
+        fairways_possible=14,
+        greens_in_regulation=4,
+        putts=37,
+        penalties=2,
+    )
+    create_round_stats(
+        client,
+        headers,
+        third_round_id,
+        fairways_hit=2,
+        fairways_possible=14,
+        greens_in_regulation=2,
+        putts=40,
+        penalties=4,
+    )
+
+    response = client.get(
+        "/api/v1/recommendations/practice-priorities",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert {
+        "Putting",
+        "Iron Play",
+        "Accuracy",
+        "Penalties",
+        "Consistency",
+    }.issubset(priority_categories(response.json()))
+    assert "Practice Frequency" not in priority_categories(response.json())
+    assert "Swing Thoughts" not in priority_categories(response.json())
+    assert_ranked_order(response.json())
+
+
+def test_practice_priorities_return_multiple_priorities_in_ranked_order(client):
+    headers = register_and_login(
+        client,
+        email="practice-priorities-ranked@example.com",
+    )
+
+    response = client.get(
+        "/api/v1/recommendations/practice-priorities",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) > 1
+    assert_ranked_order(response.json())
+
+
+def test_practice_priorities_isolate_user_ownership(client):
+    user_one_headers = register_and_login(
+        client,
+        email="practice-priorities-owner@example.com",
+    )
+    user_two_headers = register_and_login(
+        client,
+        email="practice-priorities-other@example.com",
+    )
+    user_one_round_id = create_round(client, user_one_headers, total_score=104)
+    create_round_stats(
+        client,
+        user_one_headers,
+        user_one_round_id,
+        fairways_hit=1,
+        fairways_possible=14,
+        greens_in_regulation=1,
+        putts=43,
+        penalties=6,
+    )
+    create_swing_thought(client, user_two_headers)
+    create_practice_session(
+        client,
+        user_two_headers,
+        session_date="2026-06-01",
+    )
+    create_practice_session(
+        client,
+        user_two_headers,
+        session_date="2026-06-15",
+    )
+    create_practice_session(
+        client,
+        user_two_headers,
+        session_date="2026-07-01",
+    )
+    user_two_round_id = create_round(client, user_two_headers, total_score=82)
+    create_round_stats(
+        client,
+        user_two_headers,
+        user_two_round_id,
+        fairways_hit=10,
+        fairways_possible=14,
+        greens_in_regulation=10,
+        putts=31,
+        penalties=0,
+    )
+
+    response = client.get(
+        "/api/v1/recommendations/practice-priorities",
+        headers=user_two_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "priority_rank": 1,
+            "category": "Consistency",
+            "priority_level": "Low",
+            "title": "Keep reinforcing what is working",
+            "explanation": "Your logged data does not show an urgent weakness, so maintenance and steady tracking are the right priorities.",
+            "supporting_metric": "No high-priority gaps detected",
+            "suggested_focus": "Continue balanced practice and keep logging round and practice details.",
+        }
+    ]
+
+
+def test_practice_priorities_requires_auth(client):
+    response = client.get("/api/v1/recommendations/practice-priorities")
+
+    assert response.status_code == 401
+
+
+def test_practice_priorities_handle_missing_analytics(client):
+    headers = register_and_login(
+        client,
+        email="practice-priorities-missing-analytics@example.com",
+    )
+    create_round(client, headers)
+
+    response = client.get(
+        "/api/v1/recommendations/practice-priorities",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert "Add detail to future rounds" in priority_titles(response.json())
+    assert "Rounds logged without analytics: 1" in {
+        priority["supporting_metric"] for priority in response.json()
+    }
+    assert_ranked_order(response.json())

@@ -9,6 +9,7 @@ from app.schemas.practice_analytics import PracticeAnalyticsSummaryResponse
 from app.schemas.practice_effectiveness import PracticeEffectivenessResponse
 from app.schemas.practice_round_correlation import PracticeRoundCorrelationResponse
 from app.schemas.round_analytics import MultiRoundAnalyticsSummaryResponse
+from app.schemas.swing_thought_effectiveness import SwingThoughtEffectivenessResult
 from app.services.improvement_timeline_service import get_improvement_timeline
 from app.services.practice_analytics_service import get_practice_analytics_summary
 from app.services.practice_effectiveness_service import get_practice_effectiveness
@@ -16,6 +17,9 @@ from app.services.practice_round_correlation_service import (
     get_practice_round_correlation,
 )
 from app.services.round_analytics_service import get_multi_round_analytics_summary
+from app.services.swing_thought_effectiveness_service import (
+    get_swing_thought_effectiveness,
+)
 
 
 router = APIRouter()
@@ -68,6 +72,19 @@ def get_practice_effectiveness_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return get_practice_effectiveness(db, current_user, lookback_days)
+
+
+@router.get(
+    "/swing-thought-effectiveness",
+    response_model=list[SwingThoughtEffectivenessResult],
+    status_code=status.HTTP_200_OK,
+)
+def get_swing_thought_effectiveness_endpoint(
+    lookback_days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_swing_thought_effectiveness(db, current_user, lookback_days)
 
 
 @router.get(

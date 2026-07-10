@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.models.user import User
@@ -6,10 +6,12 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
 from app.schemas.improvement_timeline import ImprovementTimelineResponse
 from app.schemas.practice_analytics import PracticeAnalyticsSummaryResponse
+from app.schemas.practice_effectiveness import PracticeEffectivenessResponse
 from app.schemas.practice_round_correlation import PracticeRoundCorrelationResponse
 from app.schemas.round_analytics import MultiRoundAnalyticsSummaryResponse
 from app.services.improvement_timeline_service import get_improvement_timeline
 from app.services.practice_analytics_service import get_practice_analytics_summary
+from app.services.practice_effectiveness_service import get_practice_effectiveness
 from app.services.practice_round_correlation_service import (
     get_practice_round_correlation,
 )
@@ -53,6 +55,19 @@ def get_practice_round_correlation_endpoint(
     current_user: User = Depends(get_current_user),
 ):
     return get_practice_round_correlation(db, current_user)
+
+
+@router.get(
+    "/practice-effectiveness",
+    response_model=PracticeEffectivenessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_practice_effectiveness_endpoint(
+    lookback_days: int = Query(default=14, ge=1, le=90),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_practice_effectiveness(db, current_user, lookback_days)
 
 
 @router.get(

@@ -65,3 +65,29 @@ class PracticePlanResponse(BaseModel):
     confidence: PracticePlanConfidence
     estimated_session_length_minutes: int
     practice_items: list[PracticePlanItemResponse]
+
+
+class WeeklyScheduleFocusItemResponse(BaseModel):
+    order: int
+    category: PracticePriorityCategory
+    title: str
+    recommended_minutes: int
+    reason: str
+    priority: PracticePriorityLevel
+
+
+class WeeklyScheduleEntryResponse(BaseModel):
+    day_number: int
+    session_title: str
+    total_minutes: int
+    focus_items: list[WeeklyScheduleFocusItemResponse]
+
+
+class WeeklyPracticeScheduleResponse(BaseModel):
+    generated_at: datetime
+    available_days: int
+    minutes_per_day: int
+    total_weekly_minutes: int
+    overall_focus: str
+    confidence: PracticePlanConfidence
+    schedule: list[WeeklyScheduleEntryResponse]

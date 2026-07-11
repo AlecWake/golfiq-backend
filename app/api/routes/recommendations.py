@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.models.user import User
@@ -8,13 +8,36 @@ from app.schemas.recommendation import (
     PracticePlanResponse,
     PracticePriorityResponse,
     RecommendationResponse,
+    WeeklyPracticeScheduleResponse,
 )
 from app.services.practice_plan_service import get_personalized_practice_plan
 from app.services.practice_priority_service import get_practice_priorities
 from app.services.recommendation_service import get_user_recommendations
+from app.services.weekly_practice_schedule_service import (
+    get_weekly_practice_schedule,
+)
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/weekly-practice-schedule",
+    response_model=WeeklyPracticeScheduleResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_weekly_practice_schedule_endpoint(
+    available_days: int = Query(default=3, ge=1, le=7),
+    minutes_per_day: int = Query(default=60, ge=15, le=180),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_weekly_practice_schedule(
+        db,
+        current_user,
+        available_days,
+        minutes_per_day,
+    )
 
 
 @router.get(

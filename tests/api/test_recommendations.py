@@ -1,3 +1,10 @@
+from datetime import datetime, timezone
+
+import pytest
+
+from app.schemas.recommendation import PracticePlanResponse
+
+
 def register_and_login(client, email="recommendations@example.com"):
     password = "secure-password-123"
 
@@ -646,3 +653,199 @@ def test_practice_plan_requires_authentication(client):
     response = client.get("/api/v1/recommendations/practice-plan")
 
     assert response.status_code == 401
+
+
+def weekly_schedule(client, headers, query_string=""):
+    return client.get(
+        f"/api/v1/recommendations/weekly-practice-schedule{query_string}",
+        headers=headers,
+    )
+
+
+def scheduled_items(response_json):
+    return [
+        focus_item
+        for schedule_day in response_json["schedule"]
+        for focus_item in schedule_day["focus_items"]
+    ]
+
+
+def test_weekly_schedule_requires_authentication(client):
+    response = client.get("/api/v1/recommendations/weekly-practice-schedule")
+
+    assert response.status_code == 401
+
+
+def test_weekly_schedule_for_user_with_no_data(client):
+    headers = register_and_login(client, email="weekly-schedule-empty@example.com")
+
+    response = weekly_schedule(client, headers)
+
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["confidence"] == "Low"
+    assert response_json["available_days"] == 3
+    assert response_json["minutes_per_day"] == 60
+    assert response_json["total_weekly_minutes"] == 180
+    assert len(response_json["schedule"]) == 3
+    assert all(item["recommended_minutes"] >= 5 for item in scheduled_items(response_json))
+
+
+def test_weekly_schedule_for_experienced_user_uses_existing_priorities(client):
+    headers = register_and_login(client, email="weekly-schedule-experienced@example.com")
+    create_swing_thought(client, headers)
+    for session_date in ("2026-06-10", "2026-06-20", "2026-07-01"):
+        create_practice_session(client, headers, session_date=session_date)
+    for round_date, total_score in (
+        ("2026-06-01", 98),
+        ("2026-06-15", 82),
+        ("2026-07-06", 105),
+    ):
+        round_identifier = create_round(
+            client,
+            headers,
+            round_date=round_date,
+            total_score=total_score,
+        )
+        create_round_stats(
+            client,
+            headers,
+            round_identifier,
+            fairways_hit=2,
+            greens_in_regulation=2,
+            putts=40,
+            penalties=3,
+        )
+
+    plan_response = practice_plan(client, headers)
+    schedule_response = weekly_schedule(client, headers)
+
+    assert schedule_response.status_code == 200
+    assert schedule_response.json()["overall_focus"] == plan_response.json()["overall_focus"]
+    plan_categories = {
+        item["category"] for item in plan_response.json()["practice_items"]
+    }
+    assert {
+        item["category"] for item in scheduled_items(schedule_response.json())
+    }.issubset(plan_categories)
+
+
+def test_weekly_schedule_accepts_custom_limits(client):
+    headers = register_and_login(client, email="weekly-schedule-custom@example.com")
+
+    response = weekly_schedule(
+        client,
+        headers,
+        "?available_days=2&minutes_per_day=30",
+    )
+
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["available_days"] == 2
+    assert response_json["minutes_per_day"] == 30
+    assert response_json["total_weekly_minutes"] == 60
+    assert len(response_json["schedule"]) <= 2
+
+
+@pytest.mark.parametrize(
+    "query_string",
+    (
+        "?available_days=0",
+        "?available_days=8",
+        "?minutes_per_day=14",
+        "?minutes_per_day=181",
+    ),
+)
+def test_weekly_schedule_rejects_invalid_limits(client, query_string):
+    headers = register_and_login(
+        client,
+        email=f"weekly-schedule-invalid-{query_string[-1]}@example.com",
+    )
+
+    response = weekly_schedule(client, headers, query_string)
+
+    assert response.status_code == 422
+
+
+def test_weekly_schedule_never_exceeds_daily_or_weekly_limits(client):
+    headers = register_and_login(client, email="weekly-schedule-limits@example.com")
+
+    response = weekly_schedule(
+        client,
+        headers,
+        "?available_days=2&minutes_per_day=15",
+    )
+
+    response_json = response.json()
+    assert all(day["total_minutes"] <= 15 for day in response_json["schedule"])
+    assert sum(day["total_minutes"] for day in response_json["schedule"]) <= 30
+
+
+def test_weekly_schedule_allocates_plan_order_before_lower_priorities(client):
+    headers = register_and_login(client, email="weekly-schedule-priority@example.com")
+
+    response = weekly_schedule(
+        client,
+        headers,
+        "?available_days=1&minutes_per_day=40",
+    )
+
+    items = scheduled_items(response.json())
+    assert [item["order"] for item in items] == sorted(item["order"] for item in items)
+    assert items[0]["priority"] == "High"
+
+
+def test_weekly_schedule_is_deterministic(client):
+    headers = register_and_login(client, email="weekly-schedule-order@example.com")
+
+    first_json = weekly_schedule(client, headers).json()
+    second_json = weekly_schedule(client, headers).json()
+
+    assert first_json["schedule"] == second_json["schedule"]
+    assert first_json["overall_focus"] == second_json["overall_focus"]
+
+
+def test_weekly_schedule_isolates_user_ownership(client):
+    owner_headers = register_and_login(client, email="weekly-owner@example.com")
+    other_headers = register_and_login(client, email="weekly-other@example.com")
+    owner_round_identifier = create_round(client, owner_headers, total_score=110)
+    create_round_stats(
+        client,
+        owner_headers,
+        owner_round_identifier,
+        putts=45,
+        penalties=6,
+    )
+
+    response = weekly_schedule(client, other_headers)
+
+    assert response.status_code == 200
+    assert response.json()["confidence"] == "Low"
+    assert "Prioritize putting efficiency" not in {
+        item["title"] for item in scheduled_items(response.json())
+    }
+
+
+def test_weekly_schedule_handles_empty_practice_plan(client, monkeypatch):
+    headers = register_and_login(client, email="weekly-empty-plan@example.com")
+
+    def empty_practice_plan(db, current_user):
+        return PracticePlanResponse(
+            generated_at=datetime.now(timezone.utc),
+            overall_focus="",
+            confidence="Low",
+            estimated_session_length_minutes=0,
+            practice_items=[],
+        )
+
+    monkeypatch.setattr(
+        "app.services.weekly_practice_schedule_service.get_personalized_practice_plan",
+        empty_practice_plan,
+    )
+
+    response = weekly_schedule(client, headers)
+
+    assert response.status_code == 200
+    assert response.json()["schedule"] == []
+    assert response.json()["confidence"] == "Low"
+    assert response.json()["overall_focus"] == "Build a balanced practice foundation"

@@ -537,3 +537,112 @@ def test_practice_priorities_handle_missing_analytics(client):
         priority["supporting_metric"] for priority in response.json()
     }
     assert_ranked_order(response.json())
+
+
+def practice_plan(client, headers):
+    return client.get("/api/v1/recommendations/practice-plan", headers=headers)
+
+
+def test_practice_plan_for_user_with_no_data(client):
+    headers = register_and_login(client, email="practice-plan-empty@example.com")
+
+    response = practice_plan(client, headers)
+
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["confidence"] == "Low"
+    assert 3 <= len(response_json["practice_items"]) <= 6
+    assert response_json["estimated_session_length_minutes"] == sum(
+        item["recommended_minutes"] for item in response_json["practice_items"]
+    )
+
+
+def test_practice_plan_for_beginner_user(client):
+    headers = register_and_login(client, email="practice-plan-beginner@example.com")
+    create_practice_session(client, headers)
+
+    response = practice_plan(client, headers)
+
+    assert response.status_code == 200
+    assert response.json()["confidence"] == "Low"
+    assert "Practice Frequency" in {
+        item["category"] for item in response.json()["practice_items"]
+    }
+
+
+def test_practice_plan_for_experienced_user_combines_priorities(client):
+    headers = register_and_login(client, email="practice-plan-experienced@example.com")
+    create_swing_thought(client, headers)
+    for session_date in ("2026-06-10", "2026-06-20", "2026-07-01"):
+        create_practice_session(client, headers, session_date=session_date)
+    for round_date, total_score in (
+        ("2026-06-01", 98),
+        ("2026-06-15", 82),
+        ("2026-07-06", 105),
+    ):
+        round_identifier = create_round(
+            client,
+            headers,
+            round_date=round_date,
+            total_score=total_score,
+        )
+        create_round_stats(
+            client,
+            headers,
+            round_identifier,
+            fairways_hit=2,
+            greens_in_regulation=2,
+            putts=40,
+            penalties=3,
+        )
+
+    response = practice_plan(client, headers)
+
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["confidence"] == "High"
+    assert response_json["overall_focus"] == "Iron Play"
+    assert {"Penalties", "Putting", "Iron Play", "Accuracy"}.issubset(
+        {item["category"] for item in response_json["practice_items"]}
+    )
+
+
+def test_practice_plan_order_is_deterministic(client):
+    headers = register_and_login(client, email="practice-plan-order@example.com")
+
+    first_response = practice_plan(client, headers)
+    second_response = practice_plan(client, headers)
+
+    first_items = first_response.json()["practice_items"]
+    second_items = second_response.json()["practice_items"]
+    assert first_items == second_items
+    assert [item["order"] for item in first_items] == list(
+        range(1, len(first_items) + 1)
+    )
+
+
+def test_practice_plan_isolates_user_ownership(client):
+    owner_headers = register_and_login(client, email="practice-plan-owner@example.com")
+    other_headers = register_and_login(client, email="practice-plan-other@example.com")
+    owner_round_identifier = create_round(client, owner_headers, total_score=110)
+    create_round_stats(
+        client,
+        owner_headers,
+        owner_round_identifier,
+        putts=45,
+        penalties=6,
+    )
+
+    response = practice_plan(client, other_headers)
+
+    assert response.status_code == 200
+    assert response.json()["confidence"] == "Low"
+    assert "Average putts: 45" not in {
+        item["supporting_metric"] for item in response.json()["practice_items"]
+    }
+
+
+def test_practice_plan_requires_authentication(client):
+    response = client.get("/api/v1/recommendations/practice-plan")
+
+    assert response.status_code == 401

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel
@@ -43,3 +44,24 @@ class PracticePriorityResponse(BaseModel):
     explanation: str
     supporting_metric: str
     suggested_focus: str
+
+
+PracticePlanConfidence = Literal["Low", "Moderate", "High"]
+
+
+class PracticePlanItemResponse(BaseModel):
+    order: int
+    category: PracticePriorityCategory
+    title: str
+    reason: str
+    recommended_minutes: int
+    supporting_metric: str
+    priority: PracticePriorityLevel
+
+
+class PracticePlanResponse(BaseModel):
+    generated_at: datetime
+    overall_focus: str
+    confidence: PracticePlanConfidence
+    estimated_session_length_minutes: int
+    practice_items: list[PracticePlanItemResponse]

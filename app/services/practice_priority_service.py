@@ -13,6 +13,10 @@ from app.services.round_analytics_service import (
     _gir_percentage_for_round,
     _stat_values_for_round,
 )
+from app.services.profile_personalization_service import (
+    ProfileContext,
+    get_profile_context,
+)
 
 
 RECENT_ACTIVITY_DAYS = 30
@@ -344,12 +348,14 @@ def _add_round_metric_priorities(
 
 def _rank_priorities(
     priorities: list[PracticePriorityCandidate],
+    profile_context: ProfileContext,
 ) -> list[PracticePriorityResponse]:
     ordered_priorities = sorted(
         priorities,
         key=lambda priority: (
             -PRIORITY_LEVEL_SCORES[priority.priority_level],
             -priority.severity_score,
+            -profile_context.category_tie_breaker(priority.category),
             CATEGORY_ORDER[priority.category],
             priority.title,
         ),
@@ -393,10 +399,12 @@ def get_practice_priorities(
         .count()
     )
     priorities: list[PracticePriorityCandidate] = []
+    profile_context = get_profile_context(db, current_user)
 
     _add_practice_frequency_priority(priorities, practice_sessions, user_rounds)
     _add_swing_thought_priority(priorities, active_swing_thoughts_count)
     _add_round_metric_priorities(priorities, user_rounds)
+    _add_profile_priority(priorities, profile_context, user_rounds)
 
     if not priorities:
         priorities.append(
@@ -411,4 +419,55 @@ def get_practice_priorities(
             )
         )
 
-    return _rank_priorities(priorities)
+    return _rank_priorities(_deduplicate_categories(priorities), profile_context)
+
+
+def _add_profile_priority(
+    priorities: list[PracticePriorityCandidate],
+    profile_context: ProfileContext,
+    user_rounds: list[Round],
+) -> None:
+    # Strong round evidence wins. Profile context can add a low-priority focus when
+    # history is sparse, and participates only after severity when ordering ties.
+    if len(user_rounds) >= 3 or profile_context.fallback_focus is None:
+        return
+    category, focus_name, suggested_focus = profile_context.fallback_focus
+    profile_metric = (
+        f"Profile dominant miss: {profile_context.dominant_miss}"
+        if profile_context.dominant_miss is not None
+        else "Golfer profile context"
+    )
+    profile_reason = (
+        f"Your profile notes a {profile_context.dominant_miss} miss"
+        if profile_context.dominant_miss is not None
+        else "Your experience and handicap profile"
+    )
+    priorities.append(
+        _candidate(
+            category,
+            "Low",
+            f"Build a {focus_name.lower()} baseline",
+            f"{profile_reason} makes this a useful secondary focus while more round data is collected."
+            f"{profile_context.goal_suffix()}",
+            profile_metric,
+            f"Use simple target-based practice for {suggested_focus}.",
+            0.15,
+        )
+    )
+
+
+def _deduplicate_categories(
+    priorities: list[PracticePriorityCandidate],
+) -> list[PracticePriorityCandidate]:
+    best_by_category: dict[str, PracticePriorityCandidate] = {}
+    for practice_priority in priorities:
+        existing_priority = best_by_category.get(practice_priority.category)
+        if existing_priority is None or (
+            PRIORITY_LEVEL_SCORES[practice_priority.priority_level],
+            practice_priority.severity_score,
+        ) > (
+            PRIORITY_LEVEL_SCORES[existing_priority.priority_level],
+            existing_priority.severity_score,
+        ):
+            best_by_category[practice_priority.category] = practice_priority
+    return list(best_by_category.values())

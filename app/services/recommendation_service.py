@@ -12,6 +12,10 @@ from app.services.round_analytics_service import (
     _gir_percentage_for_round,
     _stat_values_for_round,
 )
+from app.services.profile_personalization_service import (
+    ProfileContext,
+    get_profile_context,
+)
 
 
 RECENT_ACTIVITY_DAYS = 30
@@ -209,6 +213,7 @@ def get_user_recommendations(
         .count()
     )
     recommendations: list[RecommendationResponse] = []
+    profile_context = get_profile_context(db, current_user)
 
     _add_practice_recommendations(recommendations, practice_sessions, rounds)
     _add_swing_thought_recommendations(
@@ -216,6 +221,16 @@ def get_user_recommendations(
         active_swing_thoughts_count,
     )
     _add_round_recommendations(recommendations, rounds)
+
+    _add_sparse_profile_recommendation(
+        recommendations,
+        profile_context,
+        rounds,
+    )
+
+    if profile_context.scoring_goal and recommendations:
+        first_recommendation = recommendations[0]
+        first_recommendation.description += profile_context.goal_suffix()
 
     if not recommendations:
         _add_recommendation(
@@ -227,3 +242,24 @@ def get_user_recommendations(
         )
 
     return recommendations
+
+
+def _add_sparse_profile_recommendation(
+    recommendations: list[RecommendationResponse],
+    profile_context: ProfileContext,
+    rounds: list[Round],
+) -> None:
+    # Profile hints supplement sparse history; measured weaknesses remain untouched.
+    if len(rounds) >= 3 or profile_context.miss_focus is None:
+        return
+    category, focus_name, suggested_focus = profile_context.miss_focus
+    if any(item.category == category for item in recommendations):
+        return
+    _add_recommendation(
+        recommendations,
+        category,
+        "low",
+        f"Build a {focus_name.lower()} baseline",
+        f"Your profile notes a {profile_context.dominant_miss} miss. Use simple target-based practice for {suggested_focus}."
+        f"{profile_context.goal_suffix()}",
+    )

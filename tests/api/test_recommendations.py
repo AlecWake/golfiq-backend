@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 
 import pytest
 
+from app.db.models.golfer_profile import GolferProfile
+from app.db.models.user import User
 from app.schemas.recommendation import PracticePlanResponse
 
 
@@ -124,6 +126,124 @@ def categories(response_json):
 
 def titles(response_json):
     return {recommendation["title"] for recommendation in response_json}
+
+
+def update_profile(client, headers, **profile_fields):
+    response = client.put(
+        "/api/v1/users/me/profile",
+        headers=headers,
+        json=profile_fields,
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def test_sparse_recommendations_use_profile_miss_and_goal(client):
+    headers = register_and_login(client, email="recommendations-profile@example.com")
+    update_profile(
+        client,
+        headers,
+        experience_level="beginner",
+        dominant_miss="slice",
+        scoring_goal="Break 100",
+    )
+
+    first_json = client.get("/api/v1/recommendations", headers=headers).json()
+    second_json = client.get("/api/v1/recommendations", headers=headers).json()
+
+    assert first_json == second_json
+    assert len([item for item in first_json if item["category"] == "Accuracy"]) == 1
+    assert any("slice" in item["description"] for item in first_json)
+    assert any("Break 100" in item["description"] for item in first_json)
+
+
+def test_profile_personalizes_priorities_plan_and_schedule(client):
+    headers = register_and_login(client, email="priorities-profile@example.com")
+    update_profile(
+        client,
+        headers,
+        experience_level="intermediate",
+        dominant_miss="top",
+        scoring_goal="Break 90",
+        current_handicap_estimate=22,
+    )
+
+    priorities = client.get(
+        "/api/v1/recommendations/practice-priorities", headers=headers
+    ).json()
+    plan = practice_plan(client, headers).json()
+    schedule = weekly_schedule(
+        client, headers, "?available_days=2&minutes_per_day=30"
+    ).json()
+
+    assert len({item["category"] for item in priorities}) == len(priorities)
+    assert any("top" in item["explanation"] for item in priorities)
+    assert any("Break 90" in item["explanation"] for item in priorities)
+    assert any(item["category"] == "Ball Striking" for item in plan["practice_items"])
+    assert all(day["total_minutes"] <= 30 for day in schedule["schedule"])
+    assert sum(day["total_minutes"] for day in schedule["schedule"]) <= 60
+
+
+def test_handicap_context_influences_fallback_without_optional_fields(client):
+    headers = register_and_login(client, email="handicap-profile@example.com")
+    update_profile(client, headers, current_handicap_estimate=32)
+
+    priorities = client.get(
+        "/api/v1/recommendations/practice-priorities", headers=headers
+    ).json()
+
+    ball_striking = next(item for item in priorities if item["category"] == "Ball Striking")
+    assert ball_striking["supporting_metric"] == "Golfer profile context"
+
+
+def test_missing_profile_is_safe(client, db_session):
+    headers = register_and_login(client, email="missing-profile@example.com")
+    user = db_session.query(User).filter(User.email == "missing-profile@example.com").one()
+    db_session.query(GolferProfile).filter(GolferProfile.user_id == user.id).delete()
+    db_session.commit()
+
+    assert client.get("/api/v1/recommendations", headers=headers).status_code == 200
+    assert client.get(
+        "/api/v1/recommendations/practice-priorities", headers=headers
+    ).status_code == 200
+
+
+def test_strong_analytics_remain_ahead_of_advanced_profile_hint(client):
+    headers = register_and_login(client, email="advanced-profile@example.com")
+    update_profile(
+        client,
+        headers,
+        experience_level="advanced",
+        dominant_miss="slice",
+        current_handicap_estimate=6,
+    )
+    for index, total_score in enumerate((88, 89, 90), start=1):
+        round_identifier = create_round(
+            client,
+            headers,
+            total_score=total_score,
+            round_date=f"2026-06-0{index}",
+        )
+        create_round_stats(
+            client,
+            headers,
+            round_identifier,
+            fairways_hit=10,
+            greens_in_regulation=1,
+            putts=31,
+            penalties=0,
+        )
+
+    priorities = client.get(
+        "/api/v1/recommendations/practice-priorities", headers=headers
+    ).json()
+
+    assert priorities[0]["category"] == "Iron Play"
+    assert priorities[0]["priority_level"] == "High"
+    assert not any(
+        item["supporting_metric"] == "Profile dominant miss: slice"
+        for item in priorities
+    )
 
 
 def test_recommendations_for_user_with_no_data(client):

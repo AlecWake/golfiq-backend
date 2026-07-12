@@ -13,6 +13,7 @@ from app.api.routes import (
     round_stats,
     rounds,
     swing_thoughts,
+    users,
 )
 
 api_router = APIRouter()
@@ -38,6 +39,12 @@ api_router.include_router(
     clubs.router,
     prefix="/clubs",
     tags=["clubs"],
+)
+
+api_router.include_router(
+    users.router,
+    prefix="/users",
+    tags=["users"],
 )
 
 api_router.include_router(

@@ -10,6 +10,7 @@ from app.schemas.practice_effectiveness import PracticeEffectivenessResponse
 from app.schemas.practice_round_correlation import PracticeRoundCorrelationResponse
 from app.schemas.practice_type_effectiveness import PracticeTypeEffectivenessResponse
 from app.schemas.round_analytics import MultiRoundAnalyticsSummaryResponse
+from app.schemas.scoring_goal_progress import ScoringGoalProgressResponse
 from app.schemas.swing_thought_effectiveness import SwingThoughtEffectivenessResult
 from app.services.improvement_timeline_service import get_improvement_timeline
 from app.services.practice_analytics_service import get_practice_analytics_summary
@@ -18,6 +19,7 @@ from app.services.practice_round_correlation_service import (
     get_practice_round_correlation,
 )
 from app.services.round_analytics_service import get_multi_round_analytics_summary
+from app.services.scoring_goal_progress_service import get_scoring_goal_progress
 from app.services.swing_thought_effectiveness_service import (
     get_swing_thought_effectiveness,
 )
@@ -27,6 +29,18 @@ from app.services.practice_type_effectiveness_service import (
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/scoring-goal-progress",
+    response_model=ScoringGoalProgressResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_scoring_goal_progress_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_scoring_goal_progress(db, current_user)
 
 
 @router.get(

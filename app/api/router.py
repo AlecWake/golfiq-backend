@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    activity,
     analytics,
     auth,
     clubs,
@@ -17,6 +18,12 @@ from app.api.routes import (
 )
 
 api_router = APIRouter()
+
+api_router.include_router(
+    activity.router,
+    prefix="/activity",
+    tags=["activity"],
+)
 
 api_router.include_router(
     health.router,

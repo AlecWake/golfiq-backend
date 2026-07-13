@@ -8,6 +8,7 @@ from app.schemas.improvement_timeline import ImprovementTimelineResponse
 from app.schemas.practice_analytics import PracticeAnalyticsSummaryResponse
 from app.schemas.practice_effectiveness import PracticeEffectivenessResponse
 from app.schemas.practice_round_correlation import PracticeRoundCorrelationResponse
+from app.schemas.practice_type_effectiveness import PracticeTypeEffectivenessResponse
 from app.schemas.round_analytics import MultiRoundAnalyticsSummaryResponse
 from app.schemas.swing_thought_effectiveness import SwingThoughtEffectivenessResult
 from app.services.improvement_timeline_service import get_improvement_timeline
@@ -20,9 +21,28 @@ from app.services.round_analytics_service import get_multi_round_analytics_summa
 from app.services.swing_thought_effectiveness_service import (
     get_swing_thought_effectiveness,
 )
+from app.services.practice_type_effectiveness_service import (
+    get_practice_type_effectiveness,
+)
 
 
 router = APIRouter()
+
+
+@router.get(
+    "/practice-types/effectiveness",
+    response_model=PracticeTypeEffectivenessResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_practice_type_effectiveness_endpoint(
+    lookback_days: int = Query(default=14, ge=1, le=90),
+    minimum_rounds: int = Query(default=2, ge=1, le=20),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return get_practice_type_effectiveness(
+        db, current_user, lookback_days, minimum_rounds
+    )
 
 
 @router.get(

@@ -152,8 +152,13 @@ def test_cannot_access_another_users_club(client):
     club_id = create_response.json()["id"]
 
     response = client.get(f"/api/v1/clubs/{club_id}", headers=user_two_headers)
+    missing_response = client.get("/api/v1/clubs/999999", headers=user_two_headers)
 
     assert response.status_code == 404
+    assert missing_response.status_code == 404
+    assert response.json()["error"] == missing_response.json()["error"]
+    assert response.json()["error"]["code"] == "resource_not_found"
+    assert response.json()["request_id"] == response.headers["X-Request-ID"]
 
 
 def test_club_routes_require_auth(client):

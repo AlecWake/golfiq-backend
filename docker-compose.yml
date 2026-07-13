@@ -5,15 +5,54 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_USER: golfiq_user
-      POSTGRES_PASSWORD: golfiq_password
-      POSTGRES_DB: golfiq_dev
+      POSTGRES_USER: ${POSTGRES_USER:-golfiq_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-golfiq_password}
+      POSTGRES_DB: ${POSTGRES_DB:-golfiq_dev}
 
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
 
     volumes:
       - golfiq_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: golfiq_api
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-golfiq_user}:${POSTGRES_PASSWORD:-golfiq_password}@postgres:5432/${POSTGRES_DB:-golfiq_dev}
+      SECRET_KEY: ${SECRET_KEY:-local-development-secret-change-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   golfiq_postgres_data:

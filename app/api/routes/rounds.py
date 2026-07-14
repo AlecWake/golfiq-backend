@@ -21,6 +21,8 @@ router = APIRouter()
     "",
     response_model=RoundResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a round",
+    description="Record an on-course round for the authenticated golfer.",
 )
 def create_round_endpoint(
     round_data: RoundCreateRequest,
@@ -34,6 +36,8 @@ def create_round_endpoint(
     "",
     response_model=list[RoundResponse],
     status_code=status.HTTP_200_OK,
+    summary="List rounds",
+    description="Return the authenticated golfer's recorded rounds.",
 )
 def list_rounds_endpoint(
     db: Session = Depends(get_db),
@@ -46,6 +50,8 @@ def list_rounds_endpoint(
     "/{round_id}",
     response_model=RoundResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get a round",
+    description="Return one round owned by the authenticated golfer.",
 )
 def get_round_endpoint(
     round_id: int,
@@ -59,6 +65,8 @@ def get_round_endpoint(
     "/{round_id}",
     response_model=RoundResponse,
     status_code=status.HTTP_200_OK,
+    summary="Update a round",
+    description="Replace editable details for a round owned by the authenticated golfer.",
 )
 def update_round_endpoint(
     round_id: int,
@@ -72,6 +80,8 @@ def update_round_endpoint(
 @router.delete(
     "/{round_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a round",
+    description="Remove a round owned by the authenticated golfer.",
 )
 def delete_round_endpoint(
     round_id: int,

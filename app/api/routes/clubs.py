@@ -21,6 +21,8 @@ router = APIRouter()
     "",
     response_model=ClubResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a club",
+    description="Add a club to the authenticated golfer's inventory.",
 )
 def create_club_endpoint(
     club_data: ClubCreateRequest,
@@ -34,6 +36,8 @@ def create_club_endpoint(
     "",
     response_model=list[ClubResponse],
     status_code=status.HTTP_200_OK,
+    summary="List clubs",
+    description="Return every club owned by the authenticated golfer.",
 )
 def list_clubs_endpoint(
     db: Session = Depends(get_db),
@@ -46,6 +50,8 @@ def list_clubs_endpoint(
     "/{club_id}",
     response_model=ClubResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get a club",
+    description="Return one club owned by the authenticated golfer.",
 )
 def get_club_endpoint(
     club_id: int,
@@ -59,6 +65,8 @@ def get_club_endpoint(
     "/{club_id}",
     response_model=ClubResponse,
     status_code=status.HTTP_200_OK,
+    summary="Update a club",
+    description="Replace editable details for a club owned by the authenticated golfer.",
 )
 def update_club_endpoint(
     club_id: int,
@@ -72,6 +80,8 @@ def update_club_endpoint(
 @router.delete(
     "/{club_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a club",
+    description="Remove a club owned by the authenticated golfer.",
 )
 def delete_club_endpoint(
     club_id: int,

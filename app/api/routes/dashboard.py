@@ -15,6 +15,8 @@ router = APIRouter()
     "/summary",
     response_model=DashboardSummaryResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get dashboard summary",
+    description="Return headline activity, performance, and recommendation metrics.",
 )
 def get_dashboard_summary_endpoint(
     db: Session = Depends(get_db),

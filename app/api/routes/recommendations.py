@@ -25,6 +25,8 @@ router = APIRouter()
     "/weekly-practice-schedule",
     response_model=WeeklyPracticeScheduleResponse,
     status_code=status.HTTP_200_OK,
+    summary="Build a weekly practice schedule",
+    description="Distribute personalized practice focus across the requested week.",
 )
 def get_weekly_practice_schedule_endpoint(
     available_days: int = Query(default=3, ge=1, le=7),
@@ -44,6 +46,8 @@ def get_weekly_practice_schedule_endpoint(
     "/practice-plan",
     response_model=PracticePlanResponse,
     status_code=status.HTTP_200_OK,
+    summary="Build a practice plan",
+    description="Return an ordered practice session tailored to recent performance.",
 )
 def get_practice_plan_endpoint(
     db: Session = Depends(get_db),
@@ -56,6 +60,8 @@ def get_practice_plan_endpoint(
     "",
     response_model=list[RecommendationResponse],
     status_code=status.HTTP_200_OK,
+    summary="List recommendations",
+    description="Return actionable recommendations based on the golfer's data.",
 )
 def list_recommendations_endpoint(
     db: Session = Depends(get_db),
@@ -68,6 +74,8 @@ def list_recommendations_endpoint(
     "/practice-priorities",
     response_model=list[PracticePriorityResponse],
     status_code=status.HTTP_200_OK,
+    summary="List practice priorities",
+    description="Rank the golfer's most important practice focus areas.",
 )
 def list_practice_priorities_endpoint(
     db: Session = Depends(get_db),

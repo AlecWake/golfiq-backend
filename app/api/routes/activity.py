@@ -18,6 +18,8 @@ router = APIRouter()
     "",
     response_model=ActivityFeedResponse,
     status_code=status.HTTP_200_OK,
+    summary="List recent activity",
+    description="Return a paginated, filterable timeline of rounds and practice sessions.",
 )
 def get_activity_feed_endpoint(
     activity_type: ActivityType = ActivityType.ALL,

@@ -4,12 +4,32 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class GolferProfileUpdateRequest(BaseModel):
-    current_handicap_estimate: float | None = Field(default=None, ge=-10.0, le=54.0)
-    scoring_goal: str | None = Field(default=None, max_length=100)
-    dominant_miss: str | None = Field(default=None, max_length=100)
-    experience_level: str | None = None
+    current_handicap_estimate: float | None = Field(
+        default=None,
+        ge=-10.0,
+        le=54.0,
+        description="Current estimated handicap index.",
+        examples=[14.2],
+    )
+    scoring_goal: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Plain-language scoring target used for progress analytics.",
+        examples=["Break 90"],
+    )
+    dominant_miss: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Most common ball-flight or directional miss.",
+        examples=["Push slice"],
+    )
+    experience_level: str | None = Field(
+        default=None,
+        description="Golf experience level: beginner, intermediate, or advanced.",
+        examples=["intermediate"],
+    )
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(title="Golfer Profile Update Request", extra="forbid")
 
     @field_validator("scoring_goal", "dominant_miss")
     @classmethod

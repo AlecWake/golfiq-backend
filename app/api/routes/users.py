@@ -21,6 +21,8 @@ router = APIRouter()
     "/me/profile",
     response_model=GolferProfileResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get golfer profile",
+    description="Return the authenticated golfer's personalization profile.",
 )
 def get_current_user_profile_endpoint(
     db: Session = Depends(get_db),
@@ -33,6 +35,8 @@ def get_current_user_profile_endpoint(
     "/me/profile",
     response_model=GolferProfileResponse,
     status_code=status.HTTP_200_OK,
+    summary="Update golfer profile",
+    description="Replace editable personalization details for the authenticated golfer.",
 )
 def update_current_user_profile_endpoint(
     profile_data: GolferProfileUpdateRequest,

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 
+from app.api.openapi import API_DESCRIPTION, API_VERSION, CONTACT, OPENAPI_TAGS
 from app.api.router import api_router
 from app.core.exceptions import (
     http_exception_handler,
@@ -14,9 +15,21 @@ from app.middleware.request_context import RequestContextMiddleware
 def create_app() -> FastAPI:
     configure_logging()
     application = FastAPI(
-        title="GolfIQ Backend",
-        description="Practice-to-course transfer analytics platform for golfers.",
-        version="0.1.0",
+        title="GolfIQ API",
+        summary="Practice-to-course golf performance intelligence.",
+        description=API_DESCRIPTION,
+        version=API_VERSION,
+        contact=CONTACT,
+        openapi_tags=OPENAPI_TAGS,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        swagger_ui_parameters={
+            "deepLinking": True,
+            "displayRequestDuration": True,
+            "docExpansion": "none",
+            "filter": True,
+            "persistAuthorization": True,
+        },
     )
     application.add_middleware(RequestContextMiddleware)
     application.add_exception_handler(HTTPException, http_exception_handler)

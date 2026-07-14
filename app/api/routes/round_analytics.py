@@ -15,6 +15,8 @@ router = APIRouter()
     "/{round_id}/analytics",
     response_model=RoundAnalyticsSummaryResponse,
     status_code=status.HTTP_200_OK,
+    summary="Analyze a round",
+    description="Calculate scoring and performance metrics for an owned round.",
 )
 def get_round_analytics_summary_endpoint(
     round_id: int,

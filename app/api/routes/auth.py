@@ -18,6 +18,7 @@ from app.services.auth_service import login_user, register_user
 
 from app.core.security import create_access_token
 from app.schemas.auth import TokenResponse
+from app.schemas.error import ErrorResponse
 
 
 router = APIRouter()
@@ -27,6 +28,14 @@ router = APIRouter()
     "/register",
     response_model=UserRegisterResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Register a user",
+    description="Create a GolfIQ account and return the new user record.",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "An account already exists for the supplied email.",
+        }
+    },
 )
 def register(
     user_data: UserRegisterRequest,
@@ -38,6 +47,14 @@ def register(
     "/login",
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
+    summary="Sign in",
+    description="Validate account credentials and issue a JWT bearer token.",
+    responses={
+        401: {
+            "model": ErrorResponse,
+            "description": "The supplied email or password is invalid.",
+        }
+    },
 )
 def login(
     login_data: UserLoginRequest,
@@ -62,6 +79,14 @@ def login(
     "/me",
     response_model=UserRegisterResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get the current user",
+    description="Return the user represented by the supplied bearer token.",
+    responses={
+        401: {
+            "model": ErrorResponse,
+            "description": "Missing, invalid, or expired bearer token.",
+        }
+    },
 )
 def read_current_user(
     current_user: User = Depends(get_current_user),

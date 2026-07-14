@@ -35,6 +35,8 @@ router = APIRouter()
     "/scoring-goal-progress",
     response_model=ScoringGoalProgressResponse,
     status_code=status.HTTP_200_OK,
+    summary="Track scoring goal progress",
+    description="Compare recent round scores with the golfer's stated scoring goal.",
 )
 def get_scoring_goal_progress_endpoint(
     db: Session = Depends(get_db),
@@ -47,6 +49,8 @@ def get_scoring_goal_progress_endpoint(
     "/practice-types/effectiveness",
     response_model=PracticeTypeEffectivenessResponse,
     status_code=status.HTTP_200_OK,
+    summary="Compare practice type effectiveness",
+    description="Compare round outcomes associated with each recorded practice type.",
 )
 def get_practice_type_effectiveness_endpoint(
     lookback_days: int = Query(default=14, ge=1, le=90),
@@ -63,6 +67,8 @@ def get_practice_type_effectiveness_endpoint(
     "/rounds/summary",
     response_model=MultiRoundAnalyticsSummaryResponse,
     status_code=status.HTTP_200_OK,
+    summary="Summarize round performance",
+    description="Aggregate scoring and performance metrics across recorded rounds.",
 )
 def get_multi_round_analytics_summary_endpoint(
     db: Session = Depends(get_db),
@@ -75,6 +81,8 @@ def get_multi_round_analytics_summary_endpoint(
     "/practice/summary",
     response_model=PracticeAnalyticsSummaryResponse,
     status_code=status.HTTP_200_OK,
+    summary="Summarize practice activity",
+    description="Aggregate the golfer's practice volume, duration, ratings, and types.",
 )
 def get_practice_analytics_summary_endpoint(
     db: Session = Depends(get_db),
@@ -87,6 +95,8 @@ def get_practice_analytics_summary_endpoint(
     "/practice-round-correlation",
     response_model=PracticeRoundCorrelationResponse,
     status_code=status.HTTP_200_OK,
+    summary="Compare practice and rounds",
+    description="Summarize the golfer's practice history alongside round outcomes.",
 )
 def get_practice_round_correlation_endpoint(
     db: Session = Depends(get_db),
@@ -99,6 +109,8 @@ def get_practice_round_correlation_endpoint(
     "/practice-effectiveness",
     response_model=PracticeEffectivenessResponse,
     status_code=status.HTTP_200_OK,
+    summary="Analyze practice effectiveness",
+    description="Compare scores after recent practice with scores without recent practice.",
 )
 def get_practice_effectiveness_endpoint(
     lookback_days: int = Query(default=14, ge=1, le=90),
@@ -112,6 +124,8 @@ def get_practice_effectiveness_endpoint(
     "/swing-thought-effectiveness",
     response_model=list[SwingThoughtEffectivenessResult],
     status_code=status.HTTP_200_OK,
+    summary="Analyze swing thought effectiveness",
+    description="Compare round outcomes associated with each linked swing thought.",
 )
 def get_swing_thought_effectiveness_endpoint(
     lookback_days: int = Query(default=30, ge=1, le=365),
@@ -125,6 +139,8 @@ def get_swing_thought_effectiveness_endpoint(
     "/improvement-timeline",
     response_model=ImprovementTimelineResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get improvement timeline",
+    description="Return chronological round performance with practice context and trends.",
 )
 def get_improvement_timeline_endpoint(
     db: Session = Depends(get_db),

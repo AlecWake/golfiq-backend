@@ -1,13 +1,30 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserRegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8)
-    first_name: str | None = None
-    last_name: str | None = None
+    email: EmailStr = Field(
+        description="Email address used to sign in.",
+        examples=["alex.golfer@example.com"],
+    )
+    password: str = Field(
+        min_length=8,
+        description="Account password; must contain at least eight characters.",
+        examples=["practice-more-2026"],
+    )
+    first_name: str | None = Field(
+        default=None,
+        description="Golfer's preferred first name.",
+        examples=["Alex"],
+    )
+    last_name: str | None = Field(
+        default=None,
+        description="Golfer's last name.",
+        examples=["Morgan"],
+    )
+
+    model_config = ConfigDict(title="User Registration Request")
 
 
 class UserRegisterResponse(BaseModel):
@@ -23,8 +40,16 @@ class UserRegisterResponse(BaseModel):
     }
 
 class UserLoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    email: EmailStr = Field(
+        description="Registered account email address.",
+        examples=["alex.golfer@example.com"],
+    )
+    password: str = Field(
+        description="Registered account password.",
+        examples=["practice-more-2026"],
+    )
+
+    model_config = ConfigDict(title="User Login Request")
 
 
 class UserLoginResponse(BaseModel):
@@ -32,6 +57,14 @@ class UserLoginResponse(BaseModel):
     user: UserRegisterResponse
 
 class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str
+    access_token: str = Field(
+        description="JWT to send in the Authorization header.",
+        examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."],
+    )
+    token_type: str = Field(
+        description="Authentication scheme used by the token.",
+        examples=["bearer"],
+    )
     user: UserRegisterResponse
+
+    model_config = ConfigDict(title="Authentication Token Response")

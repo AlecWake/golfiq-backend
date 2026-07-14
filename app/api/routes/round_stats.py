@@ -24,6 +24,8 @@ router = APIRouter()
     "/{round_id}/stats",
     response_model=RoundStatResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create round statistics",
+    description="Add aggregate performance statistics to an owned round.",
 )
 def create_round_stat_endpoint(
     round_id: int,
@@ -38,6 +40,8 @@ def create_round_stat_endpoint(
     "/{round_id}/stats",
     response_model=RoundStatResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get round statistics",
+    description="Return aggregate performance statistics for an owned round.",
 )
 def get_round_stat_endpoint(
     round_id: int,
@@ -51,6 +55,8 @@ def get_round_stat_endpoint(
     "/{round_id}/stats",
     response_model=RoundStatResponse,
     status_code=status.HTTP_200_OK,
+    summary="Update round statistics",
+    description="Replace aggregate performance statistics for an owned round.",
 )
 def update_round_stat_endpoint(
     round_id: int,
@@ -64,6 +70,8 @@ def update_round_stat_endpoint(
 @router.delete(
     "/{round_id}/stats",
     status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete round statistics",
+    description="Remove aggregate performance statistics from an owned round.",
 )
 def delete_round_stat_endpoint(
     round_id: int,

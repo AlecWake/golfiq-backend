@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 
 class ActivityType(str, Enum):
+    """Activity categories available when filtering the activity feed."""
+
     ALL = "all"
     ROUND = "round"
     PRACTICE = "practice"

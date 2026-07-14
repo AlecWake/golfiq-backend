@@ -3,6 +3,30 @@
 Practice-to-course transfer analytics platform that helps golfers determine
 whether practice habits and swing thoughts improve on-course performance.
 
+## API
+
+GolfIQ exposes version **v1** under `/api/v1`. Register or sign in through the
+Authentication endpoints to obtain a JWT, then send it to protected endpoints as
+`Authorization: Bearer <access_token>`. The health check and account registration
+and sign-in endpoints do not require authentication.
+
+With the API running locally:
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+- OpenAPI document: `http://localhost:8000/openapi.json`
+
+Major endpoint groups cover authentication, golfer profiles, clubs, practice
+sessions, swing thoughts, rounds, round statistics, hole scores, analytics,
+recommendations, the dashboard, and recent activity.
+
+For development, start PostgreSQL, apply Alembic migrations, run Uvicorn with
+reload, and execute the full pytest suite before opening a pull request. The same
+stack can be started with `docker compose up --build`; the API container waits for
+PostgreSQL and applies existing migrations before serving traffic. GitHub Actions
+repeats compilation, migration, and pytest checks for pushes and pull requests.
+Detailed commands follow below.
+
 ## Local development
 
 The existing direct-Python workflow is still supported. Copy `.env.example` to

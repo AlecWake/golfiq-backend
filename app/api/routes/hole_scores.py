@@ -25,6 +25,8 @@ router = APIRouter()
     "/{round_id}/hole-scores",
     response_model=HoleScoreResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a hole score",
+    description="Add hole-level scoring details to an owned round.",
 )
 def create_hole_score_endpoint(
     round_id: int,
@@ -39,6 +41,8 @@ def create_hole_score_endpoint(
     "/{round_id}/hole-scores",
     response_model=list[HoleScoreResponse],
     status_code=status.HTTP_200_OK,
+    summary="List hole scores",
+    description="Return all recorded hole scores for an owned round.",
 )
 def list_hole_scores_endpoint(
     round_id: int,
@@ -52,6 +56,8 @@ def list_hole_scores_endpoint(
     "/{round_id}/hole-scores/{hole_score_id}",
     response_model=HoleScoreResponse,
     status_code=status.HTTP_200_OK,
+    summary="Get a hole score",
+    description="Return one hole score from an owned round.",
 )
 def get_hole_score_endpoint(
     round_id: int,
@@ -66,6 +72,8 @@ def get_hole_score_endpoint(
     "/{round_id}/hole-scores/{hole_score_id}",
     response_model=HoleScoreResponse,
     status_code=status.HTTP_200_OK,
+    summary="Update a hole score",
+    description="Replace editable details for a hole score in an owned round.",
 )
 def update_hole_score_endpoint(
     round_id: int,
@@ -86,6 +94,8 @@ def update_hole_score_endpoint(
 @router.delete(
     "/{round_id}/hole-scores/{hole_score_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a hole score",
+    description="Remove a hole score from an owned round.",
 )
 def delete_hole_score_endpoint(
     round_id: int,

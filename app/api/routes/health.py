@@ -1,9 +1,17 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
+
+from app.schemas.health import HealthResponse
 
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Check API health",
+    description="Confirm that the GolfIQ API process is available.",
+)
 def health_check():
     return {
         "status": "ok",

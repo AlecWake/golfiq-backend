@@ -1,5 +1,24 @@
 # golfiq-backend
-Practice-to-course transfer analytics platform that helps golfers determine whether practice habits and swing thoughts improve on-course performance.
+
+Practice-to-course transfer analytics platform that helps golfers determine
+whether practice habits and swing thoughts improve on-course performance.
+
+## Local development
+
+The existing direct-Python workflow is still supported. Copy `.env.example` to
+`.env`, start PostgreSQL, activate the virtual environment, migrate, and run
+Uvicorn with reload enabled:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d postgres
+.\.venv\Scripts\Activate.ps1
+python -m alembic upgrade head
+python -m uvicorn app.main:app --reload
+```
+
+The host API uses `DATABASE_URL` from `.env` and connects to PostgreSQL at
+`localhost:5433`. Tests continue to use the separate `golfiq_test` database.
 
 ## Docker
 
@@ -35,23 +54,34 @@ docker compose down
 Use `docker compose down -v` only when you intentionally want to delete all data
 in the local PostgreSQL named volume.
 
-### Local hybrid development
-
-To keep running the API directly from Windows, start only PostgreSQL, activate the
-existing virtual environment, apply migrations, and start Uvicorn:
-
-```powershell
-docker compose up -d postgres
-.\.venv\Scripts\Activate.ps1
-python -m alembic upgrade head
-python -m uvicorn app.main:app --reload
-```
-
-This workflow uses the host `DATABASE_URL` from `.env`, which points to
-`localhost:5433`. Tests continue to use the separate `golfiq_test` database.
-
 ## Continuous integration
 
 GitHub Actions validates pushes to `main` and pull requests targeting `main`.
 The pipeline starts PostgreSQL, applies all Alembic migrations, compiles the
 application, and runs the full pytest suite. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+## AWS EC2 deployment
+
+The first production deployment uses one Ubuntu LTS EC2 instance, the existing
+API image, PostgreSQL 16, and `docker-compose.production.yml`. PostgreSQL has a
+persistent named volume and no published host port. Only the API on port 8000 and
+restricted SSH access should be allowed through the EC2 security group.
+
+On the instance, copy `.env.production.example` to `.env.production`, generate
+unique production secrets, validate the Compose configuration, and start it:
+
+```bash
+cp .env.production.example .env.production
+chmod 600 .env.production
+docker compose --env-file .env.production -f docker-compose.production.yml config --quiet
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+```
+
+The API waits for PostgreSQL, applies Alembic migrations, and then starts FastAPI
+on port 8000. See the complete [EC2 deployment runbook](docs/ec2-deployment.md)
+for instance setup, Docker installation, security, environment variables, health
+checks, updates, backups, and rollback steps.
+
+This initial deployment intentionally uses plain HTTP. Add a reverse proxy and
+HTTPS before transmitting production credentials or sensitive data; those are
+planned as separate work and are not part of this deployment preparation.

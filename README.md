@@ -27,6 +27,11 @@ PostgreSQL and applies existing migrations before serving traffic. GitHub Action
 repeats compilation, migration, and pytest checks for pushes and pull requests.
 Detailed commands follow below.
 
+## Architecture
+
+Major engineering decisions and their tradeoffs are documented in the
+[Architecture Decision Record index](docs/architecture/adr/README.md).
+
 ## Local development
 
 The existing direct-Python workflow is still supported. Copy `.env.example` to

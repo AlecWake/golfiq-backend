@@ -1,11 +1,10 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.db.models.golfer_profile import GolferProfile
 from app.db.models.user import User
 from app.schemas.auth import UserRegisterRequest
-from app.core.security import hash_password, verify_password
 
 
 def register_user(db: Session, user_data: UserRegisterRequest) -> User:
@@ -35,6 +34,7 @@ def register_user(db: Session, user_data: UserRegisterRequest) -> User:
     db.refresh(user)
 
     return user
+
 
 def login_user(db: Session, email: str, password: str) -> User:
     user = db.query(User).filter(User.email == email).first()

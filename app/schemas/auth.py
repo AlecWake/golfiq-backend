@@ -35,9 +35,8 @@ class UserRegisterResponse(BaseModel):
     role: str
     created_at: datetime
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserLoginRequest(BaseModel):
     email: EmailStr = Field(
@@ -51,10 +50,6 @@ class UserLoginRequest(BaseModel):
 
     model_config = ConfigDict(title="User Login Request")
 
-
-class UserLoginResponse(BaseModel):
-    message: str
-    user: UserRegisterResponse
 
 class TokenResponse(BaseModel):
     access_token: str = Field(

@@ -7,8 +7,7 @@ from app.db.models.golfer_profile import GolferProfile
 from app.db.models.round import Round
 from app.db.models.user import User
 from app.schemas.scoring_goal_progress import GoalStatus, ScoringGoalProgressResponse
-from app.services.improvement_timeline_service import _trend_label
-from app.services.round_analytics_service import _average
+from app.services.analytics_utils import average_or_zero, score_trend_label
 
 
 RECENT_ROUND_WINDOW = 5
@@ -87,7 +86,7 @@ def _response_without_target(
     score_values = [user_round.total_score for user_round in comparable_rounds]
     recent_score_values = [user_round.total_score for user_round in recent_rounds]
     trend_label = (
-        _trend_label(recent_rounds[0].total_score, recent_rounds[1].total_score)
+        score_trend_label(recent_rounds[0].total_score, recent_rounds[1].total_score)
         if len(recent_rounds) >= 2
         else "insufficient_data"
     )
@@ -97,8 +96,8 @@ def _response_without_target(
         goal_status=goal_status,
         total_rounds=len(comparable_rounds),
         recent_rounds_considered=len(recent_rounds),
-        current_average_score=_average(score_values),
-        recent_average_score=_average(recent_score_values),
+        current_average_score=average_or_zero(score_values),
+        recent_average_score=average_or_zero(recent_score_values),
         best_score=min(score_values),
         rounds_at_or_below_target=0,
         percentage_at_or_below_target=0.0,
@@ -158,8 +157,8 @@ def get_scoring_goal_progress(
     recent_rounds = comparable_rounds[:RECENT_ROUND_WINDOW]
     score_values = [user_round.total_score for user_round in comparable_rounds]
     recent_score_values = [user_round.total_score for user_round in recent_rounds]
-    current_average = _average(score_values)
-    recent_average = _average(recent_score_values)
+    current_average = average_or_zero(score_values)
+    recent_average = average_or_zero(recent_score_values)
     rounds_at_target = sum(score_value <= target_score for score_value in score_values)
     recent_rounds_at_target = sum(
         score_value <= target_score for score_value in recent_score_values
@@ -183,7 +182,7 @@ def get_scoring_goal_progress(
         )
 
     trend_label = (
-        _trend_label(recent_rounds[0].total_score, recent_rounds[1].total_score)
+        score_trend_label(recent_rounds[0].total_score, recent_rounds[1].total_score)
         if len(recent_rounds) >= 2
         else "insufficient_data"
     )

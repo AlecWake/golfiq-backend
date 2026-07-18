@@ -10,6 +10,7 @@ from app.schemas.round_analytics import (
     MultiRoundAnalyticsSummaryResponse,
     RoundAnalyticsSummaryResponse,
 )
+from app.services.analytics_utils import average_or_zero
 from app.services.round_service import get_user_round
 
 
@@ -97,13 +98,6 @@ def get_round_analytics_summary(
         bogeys=bogeys,
         double_bogeys_or_worse=double_bogeys_or_worse,
     )
-
-
-def _average(values: list[float | int]) -> float:
-    if not values:
-        return 0.0
-
-    return round(sum(values) / len(values), 2)
 
 
 def _stat_values_for_round(user_round: Round) -> tuple[int | None, int | None]:
@@ -206,13 +200,13 @@ def get_multi_round_analytics_summary(
 
     return MultiRoundAnalyticsSummaryResponse(
         total_rounds=len(user_rounds),
-        average_score=_average(scores),
+        average_score=average_or_zero(scores),
         best_score=min(scores),
         worst_score=max(scores),
-        average_putts=_average(putt_totals),
-        average_penalties=_average(penalty_totals),
-        average_fairway_percentage=_average(fairway_percentages),
-        average_gir_percentage=_average(gir_percentages),
+        average_putts=average_or_zero(putt_totals),
+        average_penalties=average_or_zero(penalty_totals),
+        average_fairway_percentage=average_or_zero(fairway_percentages),
+        average_gir_percentage=average_or_zero(gir_percentages),
         total_holes_played=sum(user_round.holes_played for user_round in user_rounds),
         recent_rounds_count=recent_rounds_count,
     )

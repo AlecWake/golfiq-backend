@@ -8,6 +8,7 @@ from app.db.models.round import Round
 from app.db.models.swing_thought import SwingThought
 from app.db.models.user import User
 from app.schemas.recommendation import PracticePriorityResponse
+from app.services.analytics_utils import average_or_zero
 from app.services.round_analytics_service import (
     _fairway_percentage_for_round,
     _gir_percentage_for_round,
@@ -43,13 +44,6 @@ class PracticePriorityCandidate:
     supporting_metric: str
     suggested_focus: str
     severity_score: float
-
-
-def _average(values: list[float | int]) -> float:
-    if not values:
-        return 0.0
-
-    return round(sum(values) / len(values), 2)
 
 
 def _latest_activity_date(
@@ -200,10 +194,10 @@ def _add_round_metric_priorities(
         if gir_percentage is not None:
             gir_percentages.append(gir_percentage)
 
-    average_putts = _average(putt_totals)
-    average_penalties = _average(penalty_totals)
-    average_fairway_percentage = _average(fairway_percentages)
-    average_gir_percentage = _average(gir_percentages)
+    average_putts = average_or_zero(putt_totals)
+    average_penalties = average_or_zero(penalty_totals)
+    average_fairway_percentage = average_or_zero(fairway_percentages)
+    average_gir_percentage = average_or_zero(gir_percentages)
 
     if putt_totals and average_putts > 36:
         priorities.append(

@@ -6,13 +6,7 @@ from app.db.models.practice_session import PracticeSession
 from app.db.models.swing_thought import SwingThought
 from app.db.models.user import User
 from app.schemas.practice_analytics import PracticeAnalyticsSummaryResponse
-
-
-def _average(values: list[int]) -> float:
-    if not values:
-        return 0.0
-
-    return round(sum(values) / len(values), 2)
+from app.services.analytics_utils import average_or_zero
 
 
 def _practice_type_counts(
@@ -88,8 +82,8 @@ def get_practice_analytics_summary(
     return PracticeAnalyticsSummaryResponse(
         total_practice_sessions=len(practice_sessions),
         total_practice_minutes=sum(durations),
-        average_session_duration=_average(durations),
-        average_rating=_average(ratings),
+        average_session_duration=average_or_zero(durations),
+        average_rating=average_or_zero(ratings),
         practice_type_counts=practice_type_counts,
         most_common_practice_type=_most_common_practice_type(practice_type_counts),
         recent_sessions_count=recent_sessions_count,

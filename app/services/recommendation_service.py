@@ -7,6 +7,7 @@ from app.db.models.round import Round
 from app.db.models.swing_thought import SwingThought
 from app.db.models.user import User
 from app.schemas.recommendation import RecommendationResponse
+from app.services.analytics_utils import average_or_zero
 from app.services.round_analytics_service import (
     _fairway_percentage_for_round,
     _gir_percentage_for_round,
@@ -19,13 +20,6 @@ from app.services.profile_personalization_service import (
 
 
 RECENT_ACTIVITY_DAYS = 30
-
-
-def _average(values: list[float | int]) -> float:
-    if not values:
-        return 0.0
-
-    return round(sum(values) / len(values), 2)
 
 
 def _add_recommendation(
@@ -143,7 +137,7 @@ def _add_round_recommendations(
         if gir_percentage is not None:
             gir_percentages.append(gir_percentage)
 
-    if _average(putt_totals) > 36:
+    if average_or_zero(putt_totals) > 36:
         _add_recommendation(
             recommendations,
             "Putting",
@@ -152,7 +146,7 @@ def _add_round_recommendations(
             "You average more than 36 putts per round. Spend more time practicing distance control and short putts.",
         )
 
-    if gir_percentages and _average(gir_percentages) < 35:
+    if gir_percentages and average_or_zero(gir_percentages) < 35:
         _add_recommendation(
             recommendations,
             "Ball Striking",
@@ -161,7 +155,7 @@ def _add_round_recommendations(
             "Your GIR percentage is low. Consider practicing iron approach shots and wedge control.",
         )
 
-    if fairway_percentages and _average(fairway_percentages) < 45:
+    if fairway_percentages and average_or_zero(fairway_percentages) < 45:
         _add_recommendation(
             recommendations,
             "Accuracy",
@@ -170,7 +164,7 @@ def _add_round_recommendations(
             "Your fairway percentage is low. Spend practice time on tee shots that keep the ball in play.",
         )
 
-    if _average(penalty_totals) >= 2:
+    if average_or_zero(penalty_totals) >= 2:
         _add_recommendation(
             recommendations,
             "Penalties",

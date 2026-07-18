@@ -4,6 +4,7 @@ from app.db.models.practice_session import PracticeSession
 from app.db.models.round import Round
 from app.db.models.user import User
 from app.schemas.practice_round_correlation import PracticeRoundCorrelationResponse
+from app.services.analytics_utils import average_or_zero
 
 
 NOT_ENOUGH_DATA_OBSERVATION = "Not enough data yet."
@@ -11,13 +12,6 @@ BASIC_CORRELATION_OBSERVATION = (
     "You have logged practice and round data. "
     "More advanced correlation will be added later."
 )
-
-
-def _average(values: list[int]) -> float:
-    if not values:
-        return 0.0
-
-    return round(sum(values) / len(values), 2)
 
 
 def _most_common_practice_type(
@@ -73,8 +67,8 @@ def get_practice_round_correlation(
     return PracticeRoundCorrelationResponse(
         total_practice_sessions=len(practice_sessions),
         total_rounds=len(user_rounds),
-        average_practice_rating=_average(practice_ratings),
-        average_round_score=_average(round_scores),
+        average_practice_rating=average_or_zero(practice_ratings),
+        average_round_score=average_or_zero(round_scores),
         total_practice_minutes=sum(practice_durations),
         most_common_practice_type=_most_common_practice_type(practice_sessions),
         best_round_score=min(round_scores) if round_scores else None,

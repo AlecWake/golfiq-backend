@@ -4,6 +4,7 @@ from app.db.models.practice_session import PracticeSession
 from app.db.models.round import Round
 from app.db.models.user import User
 from app.schemas.improvement_timeline import ImprovementTimelineResponse
+from app.services.analytics_utils import score_trend_label
 from app.services.round_analytics_service import (
     _fairway_percentage_for_round,
     _gir_percentage_for_round,
@@ -19,19 +20,6 @@ def _average_putts_for_round(user_round: Round) -> float | None:
         return round(putt_total / len(user_round.hole_scores), 2)
 
     return None
-
-
-def _trend_label(current_score: int, previous_score: int | None) -> str:
-    if previous_score is None:
-        return "insufficient_data"
-
-    if current_score < previous_score:
-        return "improving"
-
-    if current_score > previous_score:
-        return "declining"
-
-    return "stable"
 
 
 def get_improvement_timeline(
@@ -79,7 +67,7 @@ def get_improvement_timeline(
                 "fairway_percentage": _fairway_percentage_for_round(user_round),
                 "gir_percentage": _gir_percentage_for_round(user_round),
                 "practice_sessions_since_previous_round": practice_sessions_count,
-                "overall_trend_label": _trend_label(
+                "overall_trend_label": score_trend_label(
                     user_round.total_score,
                     previous_score,
                 ),
